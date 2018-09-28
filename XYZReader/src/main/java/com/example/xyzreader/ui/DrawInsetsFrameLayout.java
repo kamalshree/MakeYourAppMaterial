@@ -31,9 +31,6 @@ import com.example.xyzreader.R;
 
 public class DrawInsetsFrameLayout extends FrameLayout {
     private Drawable mInsetBackground;
-    private Drawable mTopInsetBackground;
-    private Drawable mBottomInsetBackground;
-    private Drawable mSideInsetBackground;
 
     private Rect mInsets;
     private Rect mTempRect = new Rect();
@@ -127,7 +124,7 @@ public class DrawInsetsFrameLayout extends FrameLayout {
             mTempRect.set(0, 0, width, mInsets.top);
             if (mInsetBackground != null) {
                 mInsetBackground.setBounds(mTempRect);
-               mInsetBackground.draw(canvas);
+                mInsetBackground.draw(canvas);
             }
 
             // Bottom

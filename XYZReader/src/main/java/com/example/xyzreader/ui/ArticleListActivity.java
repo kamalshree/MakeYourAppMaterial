@@ -7,11 +7,7 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.Loader;
 import android.database.Cursor;
-import android.os.Build;
 import android.os.Bundle;
-import android.support.design.widget.Snackbar;
-import android.support.v4.app.ActivityOptionsCompat;
-import android.support.v4.util.Pair;
 import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.RecyclerView;
@@ -22,7 +18,6 @@ import android.text.format.DateUtils;
 import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.Window;
 import android.widget.TextView;
 
 import com.example.xyzreader.R;
@@ -32,10 +27,8 @@ import com.example.xyzreader.data.UpdaterService;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
 import java.util.Date;
 import java.util.GregorianCalendar;
-import java.util.List;
 
 /**
  * An activity representing a list of Articles. This activity has different presentations for
@@ -62,17 +55,12 @@ public class ArticleListActivity extends AppCompatActivity implements
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_article_list);
 
-        mToolbar = (Toolbar) findViewById(R.id.main_toolbar);
+        mToolbar = (Toolbar) findViewById(R.id.toolbar);
+
 
         final View toolbarContainerView = findViewById(R.id.toolbar_container);
 
         mSwipeRefreshLayout = (SwipeRefreshLayout) findViewById(R.id.swipe_refresh_layout);
-        mSwipeRefreshLayout.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
-            @Override
-            public void onRefresh() {
-                refresh();
-            }
-        });
 
         mRecyclerView = (RecyclerView) findViewById(R.id.recycler_view);
         getLoaderManager().initLoader(0, null, this);
@@ -80,7 +68,6 @@ public class ArticleListActivity extends AppCompatActivity implements
         if (savedInstanceState == null) {
             refresh();
         }
-
     }
 
     private void refresh() {
@@ -100,11 +87,6 @@ public class ArticleListActivity extends AppCompatActivity implements
         unregisterReceiver(mRefreshingReceiver);
     }
 
-    @Override
-    public void onActivityReenter(int resultCode, Intent data) {
-        super.onActivityReenter(resultCode, data);
-    }
-
     private boolean mIsRefreshing = false;
 
     private BroadcastReceiver mRefreshingReceiver = new BroadcastReceiver() {
@@ -113,13 +95,6 @@ public class ArticleListActivity extends AppCompatActivity implements
             if (UpdaterService.BROADCAST_ACTION_STATE_CHANGE.equals(intent.getAction())) {
                 mIsRefreshing = intent.getBooleanExtra(UpdaterService.EXTRA_REFRESHING, false);
                 updateRefreshingUI();
-            }else {
-                if (UpdaterService.CONNECTION_ERROR.equals(intent.getAction())) {
-                    Snackbar snackbar = Snackbar
-                            .make(findViewById(R.id.article_coordinator_layout), "No internet connection!", Snackbar.LENGTH_LONG);
-
-                    snackbar.show();
-                }
             }
         }
     };
@@ -169,41 +144,8 @@ public class ArticleListActivity extends AppCompatActivity implements
             view.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View view) {
-                    //View imageView = (View)findViewById(R.id.thumbnail);
-                    View imageView = vh.thumbnailView;
-                    Intent intent = new Intent(Intent.ACTION_VIEW,ItemsContract.Items.buildItemUri(getItemId(vh.getAdapterPosition())));
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-                        //String transitionPhotoName = getString(R.string.transition_photo).trim() + String.valueOf(getItemId(vh.getAdapterPosition())).trim();
-                        //imageView.setTransitionName(transitionPhotoName);
-
-                        View statusBar = findViewById(android.R.id.statusBarBackground);
-                        View navigationBar = findViewById(android.R.id.navigationBarBackground);
-
-                        List<Pair<View, String>> pairs = new ArrayList<>();
-                        pairs.add(Pair.create(statusBar, Window.STATUS_BAR_BACKGROUND_TRANSITION_NAME));
-                        pairs.add(Pair.create(navigationBar, Window.NAVIGATION_BAR_BACKGROUND_TRANSITION_NAME));
-                        pairs.add(Pair.create(imageView, imageView.getTransitionName()));
-
-                        //Bundle options = ActivityOptions.makeSceneTransitionAnimation(ArticleListActivity.this,
-                           //     pairs.toArray(new Pair[pairs.size()])).toBundle();
-
-                        //Log.i("click: ",imageView.getTransitionName());
-                        ActivityOptionsCompat options = ActivityOptionsCompat.makeSceneTransitionAnimation(ArticleListActivity.this, imageView, imageView.getTransitionName());
-                       // ActivityOptionsCompat options = ActivityOptionsCompat.makeSceneTransitionAnimation(ArticleListActivity.this, pairs.toArray(new Pair[pairs.size()]));
-                        startActivity(intent, options.toBundle());
-                    }else {
-                        startActivity(intent);
-                    }
-/*
-                    Bundle bundle = ActivityOptions.makeSceneTransitionAnimation(this,
-                            Intent.ACTION_VIEW,
-                            sharedView.getTransitionName()).toBundle();
-                    startActivity(intent,bundle);
-                    */
-                    /*
                     startActivity(new Intent(Intent.ACTION_VIEW,
                             ItemsContract.Items.buildItemUri(getItemId(vh.getAdapterPosition()))));
-                            */
                 }
             });
             return vh;
@@ -223,7 +165,6 @@ public class ArticleListActivity extends AppCompatActivity implements
         @Override
         public void onBindViewHolder(ViewHolder holder, int position) {
             mCursor.moveToPosition(position);
-
             holder.titleView.setText(mCursor.getString(ArticleLoader.Query.TITLE));
             Date publishedDate = parsePublishedDate();
             if (!publishedDate.before(START_OF_EPOCH.getTime())) {
@@ -245,13 +186,6 @@ public class ArticleListActivity extends AppCompatActivity implements
                     mCursor.getString(ArticleLoader.Query.THUMB_URL),
                     ImageLoaderHelper.getInstance(ArticleListActivity.this).getImageLoader());
             holder.thumbnailView.setAspectRatio(mCursor.getFloat(ArticleLoader.Query.ASPECT_RATIO));
-
-
-            //String transitionPhotoName = getString(R.string.transition_photo).trim() + String.valueOf(getItemId(position)).trim();
-            String transitionPhotoName = getString(R.string.transition_photo).trim() + String.valueOf(mCursor.getLong(ArticleLoader.Query._ID)).trim();
-            //mCursor.getLong(ArticleLoader.Query._ID)
-            //Log.i("transition name from thumbnail: ",transitionPhotoName);
-            holder.thumbnailView.setTransitionName(transitionPhotoName);
         }
 
         @Override

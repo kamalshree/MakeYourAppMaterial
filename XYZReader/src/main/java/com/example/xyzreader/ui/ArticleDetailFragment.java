@@ -10,38 +10,29 @@ import android.graphics.Color;
 import android.graphics.Rect;
 import android.graphics.Typeface;
 import android.graphics.drawable.ColorDrawable;
-
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.GregorianCalendar;
-import java.util.HashMap;
-
-import android.os.Build;
 import android.os.Bundle;
-import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.ShareCompat;
-import android.support.v7.app.ActionBar;
-import android.support.v7.app.AppCompatActivity;
 import android.support.v7.graphics.Palette;
-import android.support.v7.widget.Toolbar;
 import android.text.Html;
-import android.text.Spanned;
 import android.text.format.DateUtils;
 import android.text.method.LinkMovementMethod;
-import android.transition.TransitionInflater;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.ViewTreeObserver;
 import android.widget.ImageView;
 import android.widget.TextView;
 
 import com.android.volley.VolleyError;
 import com.android.volley.toolbox.ImageLoader;
+import com.bumptech.glide.Glide;
 import com.example.xyzreader.R;
 import com.example.xyzreader.data.ArticleLoader;
+
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.GregorianCalendar;
 
 /**
  * A fragment representing a single Article detail screen. This fragment is
@@ -60,7 +51,7 @@ public class ArticleDetailFragment extends Fragment implements
     private View mRootView;
     private int mMutedColor = 0xFF333333;
     private ObservableScrollView mScrollView;
-    //private DrawInsetsFrameLayout mDrawInsetsFrameLayout;
+    private DrawInsetsFrameLayout mDrawInsetsFrameLayout;
     private ColorDrawable mStatusBarColorDrawable;
 
     private int mTopInset;
@@ -103,23 +94,7 @@ public class ArticleDetailFragment extends Fragment implements
         mStatusBarFullOpacityBottom = getResources().getDimensionPixelSize(
                 R.dimen.detail_card_top_margin);
         setHasOptionsMenu(true);
-
-
     }
-
-    private void scheduleStartPostponedTransition(final View sharedElement) {
-        sharedElement.getViewTreeObserver().addOnPreDrawListener(
-                new ViewTreeObserver.OnPreDrawListener() {
-                    @Override
-                    public boolean onPreDraw() {
-                        sharedElement.getViewTreeObserver().removeOnPreDrawListener(this);
-                        ActivityCompat.startPostponedEnterTransition(getActivity());
-                        return true;
-                    }
-                });
-    }
-
-
 
     public ArticleDetailActivity getActivityCast() {
         return (ArticleDetailActivity) getActivity();
@@ -140,13 +115,6 @@ public class ArticleDetailFragment extends Fragment implements
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
             Bundle savedInstanceState) {
         mRootView = inflater.inflate(R.layout.fragment_article_detail, container, false);
-
-        /*
-        Toolbar toolbar = (Toolbar)mRootView.findViewById(R.id.detail_toolbar);
-        ((AppCompatActivity)getActivity()).setSupportActionBar(toolbar);
-        ((AppCompatActivity)getActivity()).getSupportActionBar().setDisplayHomeAsUpEnabled(true);
-        */
-        /*
         mDrawInsetsFrameLayout = (DrawInsetsFrameLayout)
                 mRootView.findViewById(R.id.draw_insets_frame_layout);
         mDrawInsetsFrameLayout.setOnInsetsCallback(new DrawInsetsFrameLayout.OnInsetsCallback() {
@@ -155,10 +123,7 @@ public class ArticleDetailFragment extends Fragment implements
                 mTopInset = insets.top;
             }
         });
-        */
 
-
-        /*
         mScrollView = (ObservableScrollView) mRootView.findViewById(R.id.scrollview);
         mScrollView.setCallbacks(new ObservableScrollView.Callbacks() {
             @Override
@@ -169,18 +134,9 @@ public class ArticleDetailFragment extends Fragment implements
                 updateStatusBar();
             }
         });
-        */
-
 
         mPhotoView = (ImageView) mRootView.findViewById(R.id.photo);
-        //mPhotoContainerView = mRootView.findViewById(R.id.photo_container);
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-
-            String transitionPhotoName = getString(R.string.transition_photo).trim() + String.valueOf(mItemId).trim();
-            Log.i("name:",transitionPhotoName);
-            mPhotoView.setTransitionName(transitionPhotoName);
-        }
+        mPhotoContainerView = mRootView.findViewById(R.id.photo_container);
 
         mStatusBarColorDrawable = new ColorDrawable(0);
 
@@ -211,7 +167,7 @@ public class ArticleDetailFragment extends Fragment implements
                     (int) (Color.blue(mMutedColor) * 0.9));
         }
         mStatusBarColorDrawable.setColor(color);
-        //mDrawInsetsFrameLayout.setInsetBackground(mStatusBarColorDrawable);
+        mDrawInsetsFrameLayout.setInsetBackground(mStatusBarColorDrawable);
     }
 
     static float progress(float v, float min, float max) {
@@ -249,8 +205,6 @@ public class ArticleDetailFragment extends Fragment implements
         bylineView.setMovementMethod(new LinkMovementMethod());
         TextView bodyView = (TextView) mRootView.findViewById(R.id.article_body);
 
-        Toolbar toolbar = (Toolbar)mRootView.findViewById(R.id.detail_toolbar);
-
 
         bodyView.setTypeface(Typeface.createFromAsset(getResources().getAssets(), "Rosario-Regular.ttf"));
 
@@ -261,7 +215,6 @@ public class ArticleDetailFragment extends Fragment implements
             titleView.setText(mCursor.getString(ArticleLoader.Query.TITLE));
             Date publishedDate = parsePublishedDate();
             if (!publishedDate.before(START_OF_EPOCH.getTime())) {
-
                 bylineView.setText(Html.fromHtml(
                         DateUtils.getRelativeTimeSpanString(
                                 publishedDate.getTime(),
@@ -279,36 +232,23 @@ public class ArticleDetailFragment extends Fragment implements
                                 + "</font>"));
 
             }
-
             bodyView.setText(Html.fromHtml(mCursor.getString(ArticleLoader.Query.BODY)));
-
             ImageLoaderHelper.getInstance(getActivity()).getImageLoader()
                     .get(mCursor.getString(ArticleLoader.Query.PHOTO_URL), new ImageLoader.ImageListener() {
                         @Override
                         public void onResponse(ImageLoader.ImageContainer imageContainer, boolean b) {
                             Bitmap bitmap = imageContainer.getBitmap();
                             if (bitmap != null) {
-                                // The reviewer recommended using this method to get closest color based on Dark Muted Color and bitmap.
-                                Palette.from(bitmap).generate(new Palette.PaletteAsyncListener() {
-                                    @Override
-                                    public void onGenerated(Palette palette) {
-                                        mMutedColor = palette.getDarkMutedColor(0xFF333333);
-                                    }
-                                });
+                                Palette p = Palette.generate(bitmap, 12);
+                                mMutedColor = p.getDarkMutedColor(0xFF333333);
 
-
-                                //Palette p = Palette.generate(bitmap, 12);
-                                //mMutedColor = p.getDarkMutedColor(0xFF333333);
-
-                                mPhotoView.setImageBitmap(imageContainer.getBitmap());
+                                Glide.with(getActivity())
+                                     .load(imageContainer.getBitmap())
+                                     .into(mPhotoView);
 
                                 mRootView.findViewById(R.id.meta_bar)
                                         .setBackgroundColor(mMutedColor);
                                 updateStatusBar();
-
-                                scheduleStartPostponedTransition(mPhotoView);
-
-
                             }
                         }
 

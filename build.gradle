@@ -20,12 +20,9 @@ buildscript {
 allprojects {
     repositories {
         jcenter()
+        google()
     }
 
-    ext {
-        androidSupportVersion = "26.0.2"
-
-    }
 }
 
 task clean(type: Delete) {
